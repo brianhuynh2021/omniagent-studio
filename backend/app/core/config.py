@@ -2,8 +2,9 @@ import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "AI Core Platform & 5 Verticals"
-    VERSION: str = "1.0.0"
+    PROJECT_NAME: str = "OmniAgent Studio"
+    ENGINE_NAME: str = "Aegis Agentic AI Core"
+    VERSION: str = "2.0.0"
     API_V1_STR: str = "/api/v1"
     
     # LLM & Embedding Settings
@@ -16,7 +17,12 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))
     VECTOR_DIMENSION: int = 768
     
+    # Enable Dynamic Agent Studio & Multi-Domain Plugins
+    ENABLE_CUSTOM_AGENTS: bool = True
+    MAX_CUSTOM_AGENTS: int = 50
+    
     class Config:
         case_sensitive = True
 
 settings = Settings()
+

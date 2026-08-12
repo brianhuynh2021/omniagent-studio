@@ -1,10 +1,12 @@
 {
-  "name": "ai-platform-90day-frontend",
+  "name": "omniagent-studio-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 5173",
+    "dev:hub": "vite --port 3000",
+    "dev:legal": "vite --port 5173",
     "build": "vite build",
     "preview": "vite preview"
   },
