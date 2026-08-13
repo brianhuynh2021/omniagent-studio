@@ -1,0 +1,50 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.13.6
+    container_name: omniagent-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  legal-assistant-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: legal-assistant-backend
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - PROJECT_NAME=OmniAgent Legal Assistant OS
+      - ENGINE_NAME=Aegis Agentic Core
+      - LLM_PROVIDER=Gemini 3.6 Flash / Local Engine
+      - VECTOR_STORE_PROVIDER=qdrant
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - EMBEDDING_PROVIDER=hash
+      - VECTOR_DIMENSION=384
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - qdrant
+
+  legal-assistant-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: legal-assistant-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - legal-assistant-backend
+
+volumes:
+  qdrant_storage:

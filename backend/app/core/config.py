@@ -15,7 +15,13 @@ class Settings(BaseSettings):
     # Vector DB & Storage
     QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))
-    VECTOR_DIMENSION: int = 768
+    QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "omniagent_knowledge")
+    VECTOR_STORE_PROVIDER: str = os.getenv("VECTOR_STORE_PROVIDER", "memory") # memory or qdrant
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "hash") # hash, local_sentence_transformers, openai
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+    # The default hash fallback is 384-dimensional. Set this to the actual
+    # dimension of the selected model (for example 384 for the model above).
+    VECTOR_DIMENSION: int = int(os.getenv("VECTOR_DIMENSION", "384"))
     
     # Enable Dynamic Agent Studio & Multi-Domain Plugins
     ENABLE_CUSTOM_AGENTS: bool = True
@@ -25,4 +31,3 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 settings = Settings()
-

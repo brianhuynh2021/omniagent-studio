@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from app.domains.plugin_protocol import BaseVerticalPlugin, VerticalManifest
+from app.domains.legal_assistant.manifest import legal_assistant_plugin
 
 class DomainAgentMeta(BaseModel):
     id: str
@@ -25,6 +26,8 @@ class UniversalCoreRegistry:
     def __init__(self):
         self._plugins: Dict[str, BaseVerticalPlugin] = {}
         self._core_agents: Dict[str, DomainAgentMeta] = {}
+        # Register explicit Legal Assistant Plugin
+        self.register_plugin(legal_assistant_plugin)
         self._bootstrap_core_agents()
 
     def _bootstrap_core_agents(self):

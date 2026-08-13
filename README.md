@@ -57,6 +57,31 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### Vector DB & OCR readiness
+
+The repository now contains the real ingestion/search path, but it does not
+include a Vietnamese legal corpus. Use `POST /api/v1/rag/ingest` to load a
+licensed/source-controlled dataset and `POST /api/v1/rag/search` to query it.
+The payload schema stores `doc_id`, title, text, page, category, and optional
+metadata in Qdrant. `docker compose up` starts Qdrant with a persistent local
+volume; if it is unavailable, the backend uses the local in-memory fallback and
+reports that state from `GET /api/v1/rag/status`.
+
+Embedding modes are explicit:
+
+- `hash`: deterministic, dependency-free test/demo fallback; it is not a
+  semantic model.
+- `local_sentence_transformers`: local-only semantic embeddings after the
+  configured model has been downloaded and cached once.
+- `openai`: external API embedding, guarded by dossier classification and not
+  suitable for secret material.
+
+Image OCR tries local Tesseract first. Google Vision and AWS Textract adapters
+are implemented and mock-tested, but a real cloud call is not verified in this
+environment because no credentials are present. They are only added to the
+fallback chain when the request explicitly sends `allow_external_ocr=true`;
+classified dossiers remain local-only.
 *Web Application running at:* `http://localhost:5173`
 
 ---

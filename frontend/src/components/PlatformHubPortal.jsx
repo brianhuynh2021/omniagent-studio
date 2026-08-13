@@ -10,14 +10,14 @@ export default function PlatformHubPortal({ systemInfo, onAgentExecute }) {
     {
       id: 1,
       code: "LEGAL_AI",
-      name: "Project 1 — Trợ Lý Pháp Luật - Kiểm Sát Viên",
-      subtitle: "Legal AI Workstation for Prosecutors",
+      name: "Project 1 — Legal Assistant AI OS (Bilingual & Multi-Role)",
+      subtitle: "Legal Workstation for Lawyers, Judges, Prosecutors & Corporate Counsel",
       icon: Scale,
       color: "#818cf8",
       gradient: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.08))",
       status: "FLAGSHIP PRODUCTION",
-      description: "Hệ thống AI tóm tắt hồ sơ hình sự/dân sự, trích xuất vật chứng & lời khai, tự động lập Đề cương hỏi tại phiên tòa và Soạn báo cáo đề xuất giải quyết vụ án.",
-      techStack: ["FastAPI", "Qdrant Vector DB", "PostgreSQL", "Multi-Agent", "Citation Engine"],
+      description: "Trợ lý AI Pháp lý chuyên sâu đa vai trò (Luật sư, Thẩm phán, Kiểm sát viên, Pháp chế Doanh nghiệp). Tự động tra cứu Án lệ TANDTC 2026, Ma trận chứng cứ 2 chiều & Interactive Legal Studio.",
+      techStack: ["Bilingual VI/EN", "TANDTC Precedents 2026", "Dual Evidence Matrix", "Interactive Legal Studio"],
       appUrl: "http://localhost:5173",
       isPrimary: true
     },

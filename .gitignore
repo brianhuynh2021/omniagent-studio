@@ -9,3 +9,9 @@ env/
 node_modules/
 dist/
 .DS_Store
+
+# Legal assistant — never commit case data or secrets
+backend/.env
+backend/app/domains/legal_assistant/case_bank.db
+backend/app/domains/legal_assistant/.case_bank_salt
+backend/.venv/

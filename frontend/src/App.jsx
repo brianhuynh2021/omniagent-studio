@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import LegalAssistantView from './components/LegalAssistantView';
-import DocIntelView from './components/DocIntelView';
+import LegalAssistantView from './projects/legal-assistant/LegalAssistantView';
 import PlatformHubPortal from './components/PlatformHubPortal';
 import AgentTraceLogs from './components/AgentTraceLogs';
 
@@ -25,14 +24,22 @@ export default function App() {
 
   const handleAgentExecute = (response) => {
     setLastAgentResponse(response);
-    setIsTraceOpen(true);
+    if (appMode === 'hub') {
+      setIsTraceOpen(true);
+    }
   };
+
+  // Product mode is a single focused tool — it renders its own chrome
+  // (topbar + screens) with no sidebar or platform header.
+  if (appMode === 'product') {
+    return <LegalAssistantView onAgentExecute={handleAgentExecute} />;
+  }
 
   return (
     <div className="app-container">
-      <Sidebar 
-        activeView={activeView} 
-        setActiveView={setActiveView} 
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
         appMode={appMode}
         setAppMode={setAppMode}
       />
@@ -47,23 +54,16 @@ export default function App() {
         />
 
         <div className="workspace-area">
-          {appMode === 'hub' ? (
-            <PlatformHubPortal 
-              systemInfo={systemInfo} 
-              onAgentExecute={handleAgentExecute} 
-            />
-          ) : (
-            <>
-              {activeView === 'legal' && <LegalAssistantView onAgentExecute={handleAgentExecute} />}
-              {activeView === 'rag_search' && <DocIntelView onAgentExecute={handleAgentExecute} />}
-            </>
-          )}
+          <PlatformHubPortal
+            systemInfo={systemInfo}
+            onAgentExecute={handleAgentExecute}
+          />
         </div>
       </main>
 
-      <AgentTraceLogs 
-        isOpen={isTraceOpen} 
-        onClose={() => setIsTraceOpen(false)} 
+      <AgentTraceLogs
+        isOpen={isTraceOpen}
+        onClose={() => setIsTraceOpen(false)}
         lastResponse={lastAgentResponse}
       />
     </div>

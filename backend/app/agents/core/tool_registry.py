@@ -1,6 +1,7 @@
 import time
 from typing import Dict, Any, List, Optional
 from app.agents.base import BaseTool
+from app.rag.engine import rag_engine
 
 class WebSearchTool(BaseTool):
     def __init__(self):
@@ -38,26 +39,13 @@ class VectorRAGTool(BaseTool):
 
     def execute(self, query: str, collection_name: str = "knowledge_base", top_k: int = 3) -> Dict[str, Any]:
         start = time.time()
-        chunks = [
-            {
-                "chunk_id": "chk_8912",
-                "document_name": "Bộ Luật Tố Tụng Dân Sự & Hình Sự - Điều 93-97",
-                "page": 42,
-                "text": f"Nguồn chứng cứ và phương tiện thu thập chứng cứ trong quá trình điều tra, kiểm sát: {query}.",
-                "score": 0.94
-            },
-            {
-                "chunk_id": "chk_4301",
-                "document_name": "Quy trình Kiểm sát và Lập Hồ sơ Vụ án 2024",
-                "page": 15,
-                "text": f"Hướng dẫn lập đề cương kiểm sát, soạn báo cáo đề xuất giải quyết vụ án theo thẩm quyền đối với {query}.",
-                "score": 0.89
-            }
-        ]
+        matches = rag_engine.search(query=query, top_k=top_k, category=None)
+        chunks = [{**chunk.payload(), "score": score} for chunk, score in matches]
         return {
             "collection": collection_name,
             "top_k": top_k,
             "retrieved_chunks": chunks,
+            "backend": rag_engine.backend,
             "execution_ms": round((time.time() - start) * 1000, 2)
         }
 

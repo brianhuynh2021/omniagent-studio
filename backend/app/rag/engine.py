@@ -1,78 +1,153 @@
-import time
-from typing import List, Dict, Any, Tuple
-from app.agents.base import Citation
+"""Offline-first RAG ingestion and retrieval facade."""
 
-class Chunk:
-    def __init__(self, chunk_id: str, doc_id: str, doc_name: str, content: str, page: int):
-        self.chunk_id = chunk_id
-        self.doc_id = doc_id
-        self.doc_name = doc_name
-        self.content = content
-        self.page = page
+import time
+from typing import Any, Dict, List, Optional, Tuple
+
+from app.rag.embeddings import (
+    EmbeddingError,
+    EmbeddingProvider,
+    HashEmbeddingProvider,
+    create_embedding_provider,
+)
+from app.rag.schema import DocumentChunk
+from app.rag.vector_store import (
+    InMemoryVectorStore,
+    VectorStoreError,
+    create_vector_store,
+)
+
+Chunk = DocumentChunk  # Backwards-compatible name used by existing services.
+
 
 class RAGEngine:
-    def __init__(self):
-        # In-memory document & vector store for fast responsive demonstration
+    def __init__(self, store=None, embedder: Optional[EmbeddingProvider] = None):
         self.documents: Dict[str, Dict[str, Any]] = {}
-        self.chunks: List[Chunk] = []
+        self.chunks: List[DocumentChunk] = []
+        self.embedder = embedder or create_embedding_provider()
+        self.local_embedder = HashEmbeddingProvider(self.embedder.dimension)
+        self.store = store or create_vector_store()
+        self.fallback_store = InMemoryVectorStore()
+        self.backend = self.store.name
+        self.last_error: Optional[str] = None
 
     def chunk_text(self, text: str, chunk_size: int = 400, overlap: int = 50) -> List[str]:
         words = text.split()
         chunks = []
         i = 0
+        step = max(1, chunk_size - overlap)
         while i < len(words):
-            chunk_words = words[i:i + chunk_size]
-            chunks.append(" ".join(chunk_words))
-            i += (chunk_size - overlap)
+            chunks.append(" ".join(words[i:i + chunk_size]))
+            i += step
         return chunks if chunks else [text]
 
-    def add_document(self, doc_id: str, title: str, content: str, category: str = "general") -> int:
+    def _use_fallback(self, error: Exception) -> None:
+        self.backend = "memory_fallback"
+        self.last_error = str(error)
+
+    def add_document(
+        self,
+        doc_id: str,
+        title: str,
+        content: str,
+        category: str = "general",
+        classification: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> int:
         self.documents[doc_id] = {
             "doc_id": doc_id,
             "title": title,
             "content": content,
             "category": category,
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "classification": classification,
         }
-        
-        # Simple semantic line/paragraph chunker
-        paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()]
-        if not paragraphs:
-            paragraphs = [content]
-            
-        chunk_count = 0
-        for idx, p in enumerate(paragraphs):
-            c_id = f"{doc_id}_c{idx+1}"
-            chunk_obj = Chunk(chunk_id=c_id, doc_id=doc_id, doc_name=title, content=p, page=1 + (idx // 3))
-            self.chunks.append(chunk_obj)
-            chunk_count += 1
-            
-        return chunk_count
+        self.chunks = [chunk for chunk in self.chunks if chunk.doc_id != doc_id]
+        try:
+            self.store.delete_document(doc_id)
+        except Exception:
+            # A new collection may not exist yet; upsert will create it.
+            pass
+        self.fallback_store.delete_document(doc_id)
 
-    def search(self, query: str, top_k: int = 3, category: str = None) -> List[Tuple[Chunk, float]]:
-        query_words = set(query.lower().split())
-        scored_chunks = []
-        
-        for c in self.chunks:
-            if category and self.documents.get(c.doc_id, {}).get("category") != category:
-                continue
-                
-            chunk_words = set(c.content.lower().split())
-            intersection = query_words.intersection(chunk_words)
-            # Basic BM25 / Keyword + Jaccard similarity score heuristic
-            score = len(intersection) / max(1, len(query_words))
-            if score > 0 or len(self.chunks) <= 3:
-                # Add baseline similarity for mock context matching
-                adjusted_score = round(min(0.98, score + 0.65), 2)
-                scored_chunks.append((c, adjusted_score))
+        paragraphs = [p.strip() for p in content.split("\n\n") if p.strip()] or [content]
+        records = [DocumentChunk(
+            chunk_id=f"{doc_id}_c{idx + 1}",
+            doc_id=doc_id,
+            doc_name=title,
+            content=p,
+            page=1 + (idx // 3),
+            category=category,
+            metadata=metadata or {},
+        ) for idx, p in enumerate(paragraphs)]
+        try:
+            vectors = self.embedder.embed([record.content for record in records], classification=classification)
+        except Exception as exc:
+            # External providers are never retried with the dossier. The
+            # dependency-free local provider is the privacy-safe fallback.
+            self.last_error = str(exc)
+            vectors = self.local_embedder.embed([record.content for record in records])
+        self.chunks.extend(records)
 
-        scored_chunks.sort(key=lambda x: x[1], reverse=True)
-        return scored_chunks[:top_k]
+        try:
+            self.store.upsert(records, vectors)
+            self.backend = self.store.name
+            self.last_error = None
+        except Exception as exc:
+            # For a classified dossier, an external embedding provider already
+            # raises before this point. The fallback is always local.
+            self.fallback_store.upsert(records, vectors)
+            self._use_fallback(exc)
+        return len(records)
 
-    def verify_hallucination(self, claim: str, retrieved_chunks: List[Chunk]) -> bool:
-        # Guardrail check: ensure output content is supported by retrieved sources
-        if not retrieved_chunks:
-            return False
-        return True
+    def search(
+        self, query: str, top_k: int = 3, category: Optional[str] = None,
+        classification: Optional[str] = None,
+    ) -> List[Tuple[DocumentChunk, float]]:
+        try:
+            vector = self.embedder.embed([query], classification=classification)[0]
+        except Exception as exc:
+            self._use_fallback(exc)
+            vector = self.local_embedder.embed([query])[0]
+
+        active_store = self.fallback_store if self.backend == "memory_fallback" else self.store
+        try:
+            return active_store.search(vector, query, top_k, category)
+        except Exception as exc:
+            if active_store is not self.fallback_store:
+                self._use_fallback(exc)
+                return self.fallback_store.search(vector, query, top_k, category)
+            return []
+
+    def ingest_documents(self, documents: List[Dict[str, Any]], classification: Optional[str] = None) -> dict:
+        counts = []
+        for document in documents:
+            counts.append({
+                "doc_id": document["doc_id"],
+                "chunks": self.add_document(
+                    doc_id=document["doc_id"],
+                    title=document.get("title", document["doc_id"]),
+                    content=document.get("content", ""),
+                    category=document.get("category", "general"),
+                    classification=classification or document.get("classification"),
+                    metadata=document.get("metadata"),
+                ),
+            })
+        return {"documents": len(counts), "chunks": sum(item["chunks"] for item in counts), "items": counts}
+
+    def status(self) -> dict:
+        return {
+            "backend": self.backend,
+            "configured_backend": self.store.name,
+            "embedding": self.embedder.status(),
+            "documents": len(self.documents),
+            "chunks": len(self.chunks),
+            "last_error": self.last_error,
+            "store": self.store.status(),
+            "fallback": self.fallback_store.status(),
+        }
+
+    def verify_hallucination(self, claim: str, retrieved_chunks: List[DocumentChunk]) -> bool:
+        return bool(retrieved_chunks)
+
 
 rag_engine = RAGEngine()
