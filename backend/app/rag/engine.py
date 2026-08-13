@@ -86,16 +86,18 @@ class RAGEngine:
             # dependency-free local provider is the privacy-safe fallback.
             self.last_error = str(exc)
             vectors = self.local_embedder.embed([record.content for record in records])
+            self._use_fallback(exc)
+
         self.chunks.extend(records)
+        self.fallback_store.upsert(records, vectors)
 
         try:
             self.store.upsert(records, vectors)
-            self.backend = self.store.name
-            self.last_error = None
+            if not self.last_error:
+                self.backend = self.store.name
         except Exception as exc:
             # For a classified dossier, an external embedding provider already
             # raises before this point. The fallback is always local.
-            self.fallback_store.upsert(records, vectors)
             self._use_fallback(exc)
         return len(records)
 

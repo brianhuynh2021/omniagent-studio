@@ -40,6 +40,7 @@ export default function ResultsScreen({
 
   const SECTIONS = [
     { id: 'summary', label: t.secSummary, count: null },
+    { id: 'debate', label: '⚔️ Tranh Luận Đa Agent', count: data.multi_agent_debate?.debate_turns?.length || null },
     { id: 'evidence', label: t.secEvidence, count: evidence.length },
     { id: 'citations', label: t.secCitations, count: citations.length },
     { id: 'questions', label: t.secQuestions, count: questions.length },
@@ -151,8 +152,25 @@ export default function ResultsScreen({
               </span>
             )}
           </div>
-        </header>
 
+          {/* RAG Evals & Verification Bar */}
+          {data.eval_metrics && (
+            <div className="legal-evals-bar">
+              <div className="legal-eval-badge">
+                <span className="legal-eval-label">Faithfulness:</span>
+                <span className="legal-eval-val">{Math.round(data.eval_metrics.faithfulness_score * 100)}%</span>
+              </div>
+              <div className="legal-eval-badge">
+                <span className="legal-eval-label">Relevancy:</span>
+                <span className="legal-eval-val">{Math.round(data.eval_metrics.answer_relevancy_score * 100)}%</span>
+              </div>
+              <div className="legal-eval-badge">
+                <span className="legal-eval-label">Precedent Precision:</span>
+                <span className="legal-eval-val">{Math.round(data.eval_metrics.precedent_precision_score * 100)}%</span>
+              </div>
+            </div>
+          )}
+        </header>
 
         {/* Summary */}
         <section
@@ -176,6 +194,51 @@ export default function ResultsScreen({
             ))}
           </div>
         </section>
+
+        {/* Multi-Agent Debate */}
+        {data.multi_agent_debate && (
+          <section
+            className="legal-section legal-section--debate"
+            data-section="debate"
+            ref={el => (sectionRefs.current.debate = el)}
+          >
+            <div className="legal-section__head">
+              <h2 className="legal-section__title">⚔️ Tranh Luận Đa Agent (Multi-Agent Adversarial Debate)</h2>
+            </div>
+            
+            <div className="legal-debate-grid">
+              {/* Prosecutor Card */}
+              <div className="legal-debate-card legal-debate-card--pros">
+                <div className="legal-debate-card__role">🔴 {data.multi_agent_debate.prosecution_argument.agent_name}</div>
+                <div className="legal-debate-card__headline">{data.multi_agent_debate.prosecution_argument.headline}</div>
+                <ul className="legal-debate-card__list">
+                  {data.multi_agent_debate.prosecution_argument.arguments.map((arg, idx) => (
+                    <li key={idx}>{arg}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Defense Card */}
+              <div className="legal-debate-card legal-debate-card--def">
+                <div className="legal-debate-card__role">🔵 {data.multi_agent_debate.defense_argument.agent_name}</div>
+                <div className="legal-debate-card__headline">{data.multi_agent_debate.defense_argument.headline}</div>
+                <ul className="legal-debate-card__list">
+                  {data.multi_agent_debate.defense_argument.arguments.map((arg, idx) => (
+                    <li key={idx}>{arg}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Judicial Consensus */}
+            {data.multi_agent_debate.judge_consensus && (
+              <div className="legal-judge-consensus">
+                <div className="legal-judge-consensus__head">⚖️ Phán Quyết Đồng Thuận HĐXX (Judicial Consensus)</div>
+                <div className="legal-judge-consensus__text">{data.multi_agent_debate.judge_consensus.headline}</div>
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Evidence */}
         <section

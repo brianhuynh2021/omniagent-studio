@@ -1991,6 +1991,104 @@ tr:hover td { background: #fbfcfe; }
   border-color: #818cf8;
 }
 
+/* 11-Stage Maturity UI Extensions */
+.legal-evals-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.legal-eval-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.78rem;
+}
+
+.legal-eval-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.legal-eval-val {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.legal-debate-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.legal-debate-card {
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.legal-debate-card--pros {
+  border-left: 4px solid #ef4444;
+  background: #fef2f2;
+}
+
+.legal-debate-card--def {
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.legal-debate-card__role {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.legal-debate-card__headline {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.legal-debate-card__list {
+  padding-left: 1.2rem;
+  margin: 0;
+  font-size: 0.82rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.legal-judge-consensus {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #8b5cf6;
+}
+
+.legal-judge-consensus__head {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #581c87;
+  margin-bottom: 0.25rem;
+}
+
+.legal-judge-consensus__text {
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 500;
+}
+
 /* Breadcrumb Workspace Switcher */
 .app-header__switcher {
   position: relative;
