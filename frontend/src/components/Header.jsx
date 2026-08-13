@@ -1,42 +1,47 @@
 import React from 'react';
-import { Cpu, Terminal } from 'lucide-react';
+import { Cpu, Terminal, ShieldCheck } from 'lucide-react';
 
-export default function Header({ systemInfo, toggleTraceDrawer, traceLogsCount, appMode, setAppMode }) {
+export default function Header({ systemInfo, toggleTraceDrawer, traceLogsCount, appMode, setAppMode, activeView }) {
+  const titles = {
+    hub_portal: 'Platform Admin Hub',
+    legal: 'Legal Assistant AI OS',
+    explorer: 'Domain AI Explorer',
+    studio: 'Custom Agent Studio'
+  };
+
   return (
     <header className="top-header">
       <div className="header-left-context">
-        <span className="header-current-page">Platform Admin Hub</span>
+        <span className="header-badge">HỆ THỐNG</span>
+        <span className="header-current-page">{titles[activeView] || 'Platform Admin Hub'}</span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-        {appMode === 'hub' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-            <Cpu size={15} color="var(--primary-sapphire)" />
-            <span>Bộ máy: <strong>{systemInfo?.engine || 'Aegis Core'}</strong></span>
-          </div>
-        )}
+      <div className="header-right-actions">
+        <div className="header-status-item">
+          <ShieldCheck size={15} className="text-success" />
+          <span>Guardrails: Active</span>
+        </div>
 
-        {appMode === 'hub' && (
-          <button 
-            className="btn-secondary" 
-            onClick={toggleTraceDrawer}
-            style={{ position: 'relative', fontSize: '0.82rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            id="btn-open-trace-drawer"
-          >
-            <Terminal size={16} color="var(--primary-sapphire)" />
-            Nhật ký xử lý
-            {traceLogsCount > 0 && (
-              <span style={{ 
-                position: 'absolute', top: '-6px', right: '-6px', 
-                background: 'var(--primary-rose)', color: '#fff', 
-                borderRadius: '50%', padding: '2px 7px', fontSize: '0.7rem', fontWeight: 800 
-              }}>
-                {traceLogsCount}
-              </span>
-            )}
-          </button>
-        )}
+        <div className="header-status-item">
+          <Cpu size={15} className="text-primary" />
+          <span>Bộ máy: <strong>{systemInfo?.engine || 'Aegis Core'}</strong></span>
+        </div>
+
+        <button 
+          className="btn-secondary btn-sm" 
+          onClick={toggleTraceDrawer}
+          id="btn-open-trace-drawer"
+        >
+          <Terminal size={15} />
+          <span>Nhật ký xử lý</span>
+          {traceLogsCount > 0 && (
+            <span className="trace-count-pill">
+              {traceLogsCount}
+            </span>
+          )}
+        </button>
       </div>
     </header>
   );
 }
+

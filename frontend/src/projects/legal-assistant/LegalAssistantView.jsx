@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Scale, Loader2 } from 'lucide-react';
+import { Scale, Loader2, ArrowLeft } from 'lucide-react';
 import { legalTranslations } from './bilingual_dict';
 import IntakeScreen from './IntakeScreen';
 import ResultsScreen from './ResultsScreen';
@@ -16,8 +16,10 @@ Lời khai bị cáo: Nguyễn Văn A khai nhận do nợ nần bài bạc nên 
 Lời khai người bị hại: Bà B xác nhận thời điểm mất tài sản vào khoảng 02h00 sáng và đã nhận một phần tiền bồi thường.
 Căn cứ pháp lý áp dụng: Điều 173 Bộ luật Hình sự 2015 (Tội trộm cắp tài sản) và Điều 174 Bộ luật Hình sự 2015 (Tội lừa đảo chiếm đoạt tài sản).`;
 
-export default function LegalAssistantView({ onAgentExecute }) {
-  const [lang, setLang] = useState('vi');
+export default function LegalAssistantView({ onAgentExecute, lang: externalLang, setLang: setExternalLang }) {
+  const [internalLang, setInternalLang] = useState('vi');
+  const lang = externalLang || internalLang;
+  const setLang = setExternalLang || setInternalLang;
   const t = legalTranslations[lang] || legalTranslations.vi;
 
   const [screen, setScreen] = useState('intake'); // 'intake' | 'results' | 'draft'
@@ -173,28 +175,6 @@ export default function LegalAssistantView({ onAgentExecute }) {
 
   return (
     <div className="legal-app">
-      <header className="legal-topbar">
-        <div className="legal-brand">
-          <div className="legal-brand__mark"><Scale size={18} /></div>
-          <span className="legal-brand__name">{t.brand}</span>
-        </div>
-
-        <div className="legal-topbar__right">
-          <div className="legal-lang" role="group" aria-label="Language">
-            <button
-              className={`legal-lang__btn ${lang === 'vi' ? 'active' : ''}`}
-              aria-pressed={lang === 'vi'}
-              onClick={() => handleLangChange('vi')}
-            >VI</button>
-            <button
-              className={`legal-lang__btn ${lang === 'en' ? 'active' : ''}`}
-              aria-pressed={lang === 'en'}
-              onClick={() => handleLangChange('en')}
-            >EN</button>
-          </div>
-        </div>
-      </header>
-
       {loading && screen === 'intake' ? (
         <div className="legal-loading">
           <Loader2 size={26} className="legal-spin" />

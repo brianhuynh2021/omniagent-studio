@@ -80,101 +80,82 @@ export default function IntakeScreen({
         <p className="legal-intake__sub">{t.intakeSub}</p>
       </div>
 
-      {fileName ? (
-        <div className="legal-loaded">
-          <div className="legal-loaded__icon"><FileText size={18} /></div>
-          <div className="legal-loaded__body">
-            <div className="legal-loaded__name">{fileName}</div>
-            <div className="legal-loaded__meta">
-              {content.trim().length.toLocaleString()} · {t.loadedMeta}
-            </div>
-          </div>
-          <button className="legal-loaded__clear" onClick={clearDossier} title={t.clearFile} aria-label={t.clearFile}>
-            <X size={16} />
-          </button>
+      <div
+        className={`legal-drop ${isDragOver ? 'is-over' : ''}`}
+        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+          onChange={(e) => ingestFiles(Array.from(e.target.files))}
+          style={{ display: 'none' }}
+        />
+        <div className="legal-drop__icon">
+          {extracting ? <Loader2 size={26} className="legal-spin" /> : <UploadCloud size={26} />}
         </div>
-      ) : (
-        <div
-          className={`legal-drop ${isDragOver ? 'is-over' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-          onDragLeave={() => setIsDragOver(false)}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
-            onChange={(e) => ingestFiles(Array.from(e.target.files))}
-            style={{ display: 'none' }}
-          />
-          <div className="legal-drop__icon">
-            {extracting ? <Loader2 size={26} className="legal-spin" /> : <UploadCloud size={26} />}
+        <div className="legal-drop__title">{extracting ? t.extracting : t.dropTitle}</div>
+        <div className="legal-drop__hint">{extracting ? t.extractingHint : t.dropHint}</div>
+        {!extracting && <div className="legal-drop__formats">{t.dropFormats}</div>}
+
+        {extractErrors.length > 0 && (
+          <div className="legal-drop__errors" onClick={(e) => e.stopPropagation()}>
+            {extractErrors.map((msg, i) => (
+              <div key={i} className="legal-drop__error">
+                <AlertTriangle size={13} /> <span>{msg}</span>
+              </div>
+            ))}
           </div>
-          <div className="legal-drop__title">{extracting ? t.extracting : t.dropTitle}</div>
-          <div className="legal-drop__hint">{extracting ? t.extractingHint : t.dropHint}</div>
-          {!extracting && <div className="legal-drop__formats">{t.dropFormats}</div>}
+        )}
 
-          {extractErrors.length > 0 && (
-            <div className="legal-drop__errors" onClick={(e) => e.stopPropagation()}>
-              {extractErrors.map((msg, i) => (
-                <div key={i} className="legal-drop__error">
-                  <AlertTriangle size={13} /> <span>{msg}</span>
-                </div>
-              ))}
-            </div>
-          )}
+        {hasContent && (
+          <div className="legal-drop__loaded" onClick={(e) => e.stopPropagation()}>
+            <FileText size={15} color="#059669" />
+            <span className="legal-drop__loaded-name">{fileName || title}</span>
+            <button
+              className="legal-drop__loaded-clear"
+              onClick={clearDossier}
+              aria-label={t.clearFile}
+              title={t.clearFile}
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
+      </div>
 
-          {hasContent && (
-            <div className="legal-drop__loaded" onClick={(e) => e.stopPropagation()}>
-              <FileText size={13} />
-              <span className="legal-drop__loaded-name">{title}</span>
-              <button
-                className="legal-drop__loaded-clear"
-                onClick={clearDossier}
-                aria-label={t.clearFile}
-                title={t.clearFile}
-              >
-                <X size={13} />
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="legal-or">{t.orPaste}</div>
+      <button
+        className="legal-paste-toggle"
+        onClick={() => setPasteOpen(v => !v)}
+        aria-expanded={pasteOpen}
+        aria-controls="legal-paste-area"
+      >
+        {t.pasteToggle} <ChevronDown size={14} />
+      </button>
 
-      {!fileName && (
-        <>
-          <div className="legal-or">{t.orPaste}</div>
-          <button
-            className="legal-paste-toggle"
-            onClick={() => setPasteOpen(v => !v)}
-            aria-expanded={pasteOpen}
-            aria-controls="legal-paste-area"
-          >
-            {t.pasteToggle} <ChevronDown size={14} />
-          </button>
-
-          {pasteOpen && (
-            <textarea
-              id="legal-paste-area"
-              className="legal-paste-area"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder={t.pastePlaceholder}
-              aria-label={t.pasteToggle}
-              autoFocus
-            />
-          )}
-        </>
+      {pasteOpen && (
+        <textarea
+          id="legal-paste-area"
+          className="legal-paste-area"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={t.pastePlaceholder}
+          aria-label={t.pasteToggle}
+          autoFocus
+        />
       )}
 
       <div className="legal-actions">

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
 import LegalAssistantView from './projects/legal-assistant/LegalAssistantView';
+import DocIntelView from './components/DocIntelView';
+import MarketingAgentView from './components/MarketingAgentView';
+import SupportBookingView from './components/SupportBookingView';
+import EngKnowledgeView from './components/EngKnowledgeView';
+import AgentStudio from './components/AgentStudio';
 import PlatformHubPortal from './components/PlatformHubPortal';
 import AgentTraceLogs from './components/AgentTraceLogs';
+import AppHeader from './components/AppHeader';
 
 export default function App() {
-  // Detect if running on Hub port (3000 or 3031) vs Standalone Legal App port (5173)
-  const isHubPort = typeof window !== 'undefined' && (window.location.port.startsWith('30') || window.location.port === '');
-  
-  const [appMode, setAppMode] = useState(isHubPort ? 'hub' : 'product'); // 'product' | 'hub'
-  const [activeView, setActiveView] = useState(isHubPort ? 'hub_portal' : 'legal');
+  const [activeView, setActiveView] = useState('hub');
+  const [lang, setLang] = useState('vi');
   const [systemInfo, setSystemInfo] = useState(null);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [lastAgentResponse, setLastAgentResponse] = useState(null);
@@ -24,41 +25,66 @@ export default function App() {
 
   const handleAgentExecute = (response) => {
     setLastAgentResponse(response);
-    if (appMode === 'hub') {
-      setIsTraceOpen(true);
-    }
   };
 
-  // Product mode is a single focused tool — it renders its own chrome
-  // (topbar + screens) with no sidebar or platform header.
-  if (appMode === 'product') {
-    return <LegalAssistantView onAgentExecute={handleAgentExecute} />;
-  }
-
   return (
-    <div className="app-container">
-      <Sidebar
+    <div className="clean-app-shell">
+      <AppHeader 
         activeView={activeView}
         setActiveView={setActiveView}
-        appMode={appMode}
-        setAppMode={setAppMode}
+        lang={lang}
+        setLang={setLang}
+        systemInfo={systemInfo}
+        traceLogsCount={lastAgentResponse?.trace_logs?.length || 0}
+        toggleTraceDrawer={() => setIsTraceOpen(!isTraceOpen)}
       />
-      
-      <main className="main-content">
-        <Header 
-          systemInfo={systemInfo} 
-          toggleTraceDrawer={() => setIsTraceOpen(!isTraceOpen)} 
-          traceLogsCount={lastAgentResponse?.trace_logs?.length || 0}
-          appMode={appMode}
-          setAppMode={setAppMode}
-        />
 
-        <div className="workspace-area">
+      <main className="clean-workspace">
+        {activeView === 'hub' && (
           <PlatformHubPortal
             systemInfo={systemInfo}
             onAgentExecute={handleAgentExecute}
+            setActiveView={setActiveView}
           />
-        </div>
+        )}
+
+        {activeView === 'legal' && (
+          <LegalAssistantView 
+            onAgentExecute={handleAgentExecute} 
+            lang={lang}
+            setLang={setLang}
+          />
+        )}
+
+        {activeView === 'doc_intel' && (
+          <div className="clean-view-card">
+            <DocIntelView onAgentExecute={handleAgentExecute} />
+          </div>
+        )}
+
+        {activeView === 'marketing' && (
+          <div className="clean-view-card">
+            <MarketingAgentView onAgentExecute={handleAgentExecute} />
+          </div>
+        )}
+
+        {activeView === 'support' && (
+          <div className="clean-view-card">
+            <SupportBookingView onAgentExecute={handleAgentExecute} />
+          </div>
+        )}
+
+        {activeView === 'engineering' && (
+          <div className="clean-view-card">
+            <EngKnowledgeView onAgentExecute={handleAgentExecute} />
+          </div>
+        )}
+
+        {activeView === 'studio' && (
+          <div className="clean-view-card">
+            <AgentStudio onAgentExecute={handleAgentExecute} />
+          </div>
+        )}
       </main>
 
       <AgentTraceLogs
