@@ -2022,6 +2022,28 @@ tr:hover td { background: #fbfcfe; }
   font-weight: 700;
 }
 
+.legal-flywheel-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.legal-eval-badge--flywheel {
+  background: #faf5ff;
+  border-color: #e9d5ff;
+}
+
+.legal-eval-badge--flywheel .legal-eval-val {
+  color: #7e22ce;
+}
+
 .legal-debate-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

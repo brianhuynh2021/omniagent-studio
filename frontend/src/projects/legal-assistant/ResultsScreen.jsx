@@ -141,6 +141,12 @@ export default function ResultsScreen({
               <ChevronDown size={15} />
             </div>
             <span className="legal-dot">·</span>
+            {data.agent_version && (
+              <span className="legal-flywheel-badge" title="Agent system has automatically self-evolved through Trajectory & Eval Feedback Flywheel">
+                🔄 {data.agent_version}
+              </span>
+            )}
+            <span className="legal-dot">·</span>
             {result.hallucination_check_passed ? (
               <button className="legal-verified" onClick={() => scrollTo('citations')}>
                 <ShieldCheck size={14} />
@@ -168,6 +174,12 @@ export default function ResultsScreen({
                 <span className="legal-eval-label">Precedent Precision:</span>
                 <span className="legal-eval-val">{Math.round(data.eval_metrics.precedent_precision_score * 100)}%</span>
               </div>
+              {data.flywheel_state && (
+                <div className="legal-eval-badge legal-eval-badge--flywheel">
+                  <span className="legal-eval-label">Iteration:</span>
+                  <span className="legal-eval-val">#{data.flywheel_state.iteration}</span>
+                </div>
+              )}
             </div>
           )}
         </header>
