@@ -1,8 +1,11 @@
 # Stage 1: Build React Frontend
-FROM node:18-alpine AS frontend-builder
+# Node 20 LTS — Node 18 reached end-of-life in April 2025.
+FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install
+# `npm ci` installs exactly the lockfile, so the deployed bundle matches what
+# was tested locally; it falls back to `npm install` when no lockfile is present.
+RUN npm ci || npm install
 COPY frontend/ ./
 RUN npm run build
 

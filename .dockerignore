@@ -1,0 +1,22 @@
+# Keep secrets and local case data out of the image. The deployed Space is
+# public: anything copied in is readable by anyone who pulls the image.
+**/.env
+**/*.db
+**/.case_bank_salt
+
+# Reinstalled inside the build; copying them in wastes minutes and can smuggle
+# host-built native modules into a Linux image.
+**/node_modules
+**/__pycache__
+**/*.py[cod]
+**/.venv
+backend/.venv
+frontend/dist
+
+# Not needed at runtime
+.git
+.gitignore
+.pytest_cache
+**/.DS_Store
+backend/tests
+DEPLOY.md

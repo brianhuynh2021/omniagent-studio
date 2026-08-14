@@ -7,11 +7,20 @@ class Settings(BaseSettings):
     VERSION: str = "2.0.0"
     API_V1_STR: str = "/api/v1"
     
-    # LLM & Embedding Settings
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini_mock") # gemini, openai, gemini_mock
+    # LLM & Embedding Settings.
+    # LLM_PROVIDER pins a provider; leave it empty to let llm.active_provider()
+    # pick whichever key is present. Only "claude", "gemini", and "openai" (plus
+    # the aliases "anthropic"/"google") are recognised — any other value is
+    # ignored and resolution falls through to key detection.
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "")
+    ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    
+
+    # Postgres for the case bank. Empty means the local SQLite file, which does
+    # not survive a container restart — set this in any real deployment.
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+
     # Vector DB & Storage
     QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))

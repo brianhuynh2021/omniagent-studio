@@ -1,3 +1,13 @@
+---
+title: OmniAgent Studio
+emoji: ⚡
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # ⚡ OmniAgent Studio (Aegis Agentic Core Platform)
 
 > **Enterprise-Grade Microkernel Agent Operating System & Multi-Tenant Core AI Engine**

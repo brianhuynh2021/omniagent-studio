@@ -14,23 +14,44 @@ If a future change needs a new column, the test is whether that column could
 identify a defendant, a case, or a document. If it could, it does not belong
 here.
 
-The store is intentionally boring: one SQLite file, no ORM, no migrations
-framework. It moves to PostgreSQL later without changing the call sites.
+The store is intentionally boring: no ORM, no migrations framework. It runs on
+PostgreSQL when DATABASE_URL is set and on a local SQLite file otherwise, behind
+one small paramstyle shim — the call sites are identical either way.
+
+Deployed containers have an ephemeral filesystem: a restart resets the image and
+takes any SQLite file with it. Set DATABASE_URL in every deployment that expects
+its statistics to survive; SQLite is for local development and tests.
 """
 
 import json
+import logging
 import os
 import re
 import sqlite3
 import threading
 import time
 from collections import Counter
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+# One warning per process is enough; the salt is read on every record_case().
+_warned_ephemeral_salt = False
 
 DB_PATH = os.environ.get(
     "LEGAL_CASE_BANK_PATH",
     os.path.join(os.path.dirname(__file__), "case_bank.db"),
 )
+
+# Postgres when a URL is configured, SQLite otherwise. Read through _db_url()
+# rather than at import time so tests can set the variable after import.
+def _db_url() -> str:
+    return (os.environ.get("DATABASE_URL") or "").strip()
+
+
+def using_postgres() -> bool:
+    return bool(_db_url())
 
 # Below this many prior cases the distribution is noise, not signal.
 MIN_CASES_FOR_STATS = 3
@@ -68,11 +89,78 @@ _ARTICLE_RE = re.compile(
 
 _lock = threading.Lock()
 
+# Which target init_db() has already prepared. Keyed by destination rather than
+# a bare flag so that repointing the store — tests swapping in a temp file, a
+# DATABASE_URL appearing at runtime — re-runs setup against the new database
+# instead of assuming the previous one's schema.
+_initialised_for: Optional[str] = None
 
-def _connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH, timeout=10)
-    conn.row_factory = sqlite3.Row
-    return conn
+
+class _Cursor:
+    """Uniform cursor over sqlite3 and psycopg.
+
+    Queries in this module are written with `?` placeholders and read by column
+    name. SQLite gives both natively; for Postgres the placeholders are
+    rewritten to `%s` and rows are zipped back into dicts.
+    """
+
+    def __init__(self, cursor, postgres: bool):
+        self._cursor = cursor
+        self._postgres = postgres
+
+    def execute(self, sql: str, params=()) -> "_Cursor":
+        self._cursor.execute(sql.replace("?", "%s") if self._postgres else sql, params)
+        return self
+
+    def _row(self, raw):
+        if raw is None:
+            return None
+        if not self._postgres:
+            return raw
+        return dict(zip([c.name for c in self._cursor.description], raw))
+
+    def fetchone(self):
+        return self._row(self._cursor.fetchone())
+
+    def fetchall(self):
+        return [self._row(r) for r in self._cursor.fetchall()]
+
+    def __iter__(self):
+        return iter(self.fetchall())
+
+
+class _Connection:
+    def __init__(self, conn, postgres: bool):
+        self._conn = conn
+        self._postgres = postgres
+
+    def execute(self, sql: str, params=()) -> _Cursor:
+        return _Cursor(self._conn.cursor(), self._postgres).execute(sql, params)
+
+
+@contextmanager
+def _connect():
+    """Yield a connection that commits on success and rolls back on error.
+
+    SQLite's own context manager commits but leaves the handle open, so both
+    branches close explicitly here.
+    """
+    postgres = using_postgres()
+    if postgres:
+        import psycopg
+        conn = psycopg.connect(_db_url())
+    else:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        conn.row_factory = sqlite3.Row
+
+    try:
+        yield _Connection(conn, postgres)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
@@ -83,25 +171,47 @@ def init_db() -> None:
     so a database carrying them is dropped rather than migrated — the
     statistics rebuild themselves from subsequent analyses.
     """
+    global _initialised_for
+    target = _db_url() or DB_PATH
+    if _initialised_for == target:
+        return
+
+    postgres = using_postgres()
     with _lock, _connect() as conn:
-        cols = {r["name"] for r in conn.execute("PRAGMA table_info(cases)")}
+        if postgres:
+            legacy = conn.execute(
+                """SELECT column_name FROM information_schema.columns
+                   WHERE table_name = 'cases'"""
+            ).fetchall()
+            cols = {r["column_name"] for r in legacy}
+        else:
+            cols = {r["name"] for r in conn.execute("PRAGMA table_info(cases)")}
+
         if cols and ({"title", "defendant"} & cols):
             conn.execute("DROP TABLE cases")
 
-        conn.execute("""
+        # The two dialects differ only in these column types: Postgres has no
+        # AUTOINCREMENT, and REAL there is single-precision, too coarse to hold
+        # a Unix timestamp. created_at stays an epoch float on both so that
+        # next_reference() can keep comparing it to datetime.timestamp().
+        pk = "BIGSERIAL PRIMARY KEY" if postgres else "INTEGER PRIMARY KEY AUTOINCREMENT"
+        timestamp = "DOUBLE PRECISION" if postgres else "REAL"
+        conn.execute(f"""
             CREATE TABLE IF NOT EXISTS cases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id {pk},
                 locality TEXT,
                 case_type TEXT,
                 lang TEXT,
                 persona TEXT,
                 articles TEXT,
                 dedupe_hash TEXT UNIQUE,
-                created_at REAL
+                created_at {timestamp}
             )
         """)
         conn.execute("CREATE INDEX IF NOT EXISTS idx_loc_type ON cases(locality, case_type)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_type ON cases(case_type)")
+
+    _initialised_for = target
 
 
 def extract_locality(content: str) -> Optional[str]:
@@ -152,10 +262,29 @@ def _dedupe_hash(title: str, content: str) -> str:
 
 
 def _dedupe_salt() -> bytes:
-    """Read (or create) the per-deployment salt, stored beside the DB."""
+    """Read (or create) the per-deployment salt, stored beside the DB.
+
+    The generated file lives on local disk. That is fine alongside a SQLite
+    database — both are lost together — but not alongside Postgres, where the
+    rows outlive the container and a regenerated salt would fingerprint the
+    same dossier differently, counting it a second time. Warn once so the
+    misconfiguration is visible before the statistics drift.
+    """
     env = os.environ.get("LEGAL_CASE_BANK_SALT")
     if env:
         return env.encode("utf-8")
+
+    if using_postgres():
+        global _warned_ephemeral_salt
+        if not _warned_ephemeral_salt:
+            _warned_ephemeral_salt = True
+            logger.warning(
+                "LEGAL_CASE_BANK_SALT is unset while the case bank runs on "
+                "Postgres. The salt is stored on the container filesystem and "
+                "is regenerated whenever that is reset, after which previously "
+                "recorded dossiers no longer deduplicate. Set it to a fixed "
+                "random value for this deployment."
+            )
 
     path = os.path.join(os.path.dirname(DB_PATH) or ".", ".case_bank_salt")
     try:
@@ -194,8 +323,6 @@ def record_case(
         return {"stored": False, "reason": "classification", "locality": None,
                 "case_type": None, "articles": []}
 
-    init_db()
-
     locality = extract_locality(content)
     case_type = extract_case_type(title, content)
     articles = extract_articles(
@@ -206,29 +333,38 @@ def record_case(
         content,
     )
 
-    row = {
-        "locality": locality,
-        "case_type": case_type,
-        "lang": lang,
-        "persona": persona,
-        "articles": json.dumps(articles, ensure_ascii=False),
-        "dedupe_hash": _dedupe_hash(title, content),
-        "created_at": time.time(),
-    }
+    row = (
+        locality,
+        case_type,
+        lang,
+        persona,
+        json.dumps(articles, ensure_ascii=False),
+        _dedupe_hash(title, content),
+        time.time(),
+    )
 
-    with _lock, _connect() as conn:
-        try:
-            conn.execute(
+    # A duplicate aborts the whole Postgres transaction, so the conflict is
+    # resolved in SQL rather than by catching the integrity error afterwards.
+    # init_db() is inside the try because it opens the first connection: on a
+    # sleeping or unreachable database that is where the failure surfaces.
+    try:
+        init_db()
+        with _lock, _connect() as conn:
+            inserted = conn.execute(
                 """INSERT INTO cases
                    (locality, case_type, lang, persona, articles,
                     dedupe_hash, created_at)
-                   VALUES (:locality, :case_type, :lang, :persona,
-                           :articles, :dedupe_hash, :created_at)""",
+                   VALUES (?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(dedupe_hash) DO NOTHING
+                   RETURNING id""",
                 row,
-            )
-            stored = True
-        except sqlite3.IntegrityError:
-            stored = False  # this dossier was already counted
+            ).fetchone()
+            stored = inserted is not None
+    except Exception as exc:
+        # The bank is a statistical aid, not part of the answer path: a store
+        # that is down must not fail the analysis that triggered it.
+        return {"stored": False, "reason": f"store_unavailable: {exc}",
+                "locality": locality, "case_type": case_type, "articles": articles}
 
     return {"stored": stored, "locality": locality, "case_type": case_type, "articles": articles}
 
@@ -240,7 +376,6 @@ def lookup_precedent_stats(title: str, content: str) -> Dict[str, Any]:
     it falls back to case type alone, reporting which scope was used so the
     caller can show it honestly.
     """
-    init_db()
     locality = extract_locality(content)
     case_type = extract_case_type(title, content)
 
@@ -248,24 +383,32 @@ def lookup_precedent_stats(title: str, content: str) -> Dict[str, Any]:
         return {"available": False, "reason": "unknown_case_type",
                 "locality": locality, "case_type": None}
 
-    with _lock, _connect() as conn:
-        rows = []
-        scope = None
-        if locality:
-            rows = conn.execute(
-                "SELECT articles FROM cases WHERE locality = ? AND case_type = ?",
-                (locality, case_type),
-            ).fetchall()
-            if len(rows) >= MIN_CASES_FOR_STATS:
-                scope = "locality_and_type"
+    try:
+        init_db()
+        with _lock, _connect() as conn:
+            rows = []
+            scope = None
+            if locality:
+                rows = conn.execute(
+                    "SELECT articles FROM cases WHERE locality = ? AND case_type = ?",
+                    (locality, case_type),
+                ).fetchall()
+                if len(rows) >= MIN_CASES_FOR_STATS:
+                    scope = "locality_and_type"
 
-        if scope is None:
-            rows = conn.execute(
-                "SELECT articles FROM cases WHERE case_type = ?", (case_type,)
-            ).fetchall()
-            scope = "type_only"
+            if scope is None:
+                rows = conn.execute(
+                    "SELECT articles FROM cases WHERE case_type = ?", (case_type,)
+                ).fetchall()
+                scope = "type_only"
 
-        total_in_bank = conn.execute("SELECT COUNT(*) AS n FROM cases").fetchone()["n"]
+            total_in_bank = conn.execute("SELECT COUNT(*) AS n FROM cases").fetchone()["n"]
+    except Exception as exc:
+        # Reported as unavailable rather than raised: the caller renders this
+        # alongside an answer that stands on its own without the statistics.
+        logger.warning("Case bank unavailable for precedent stats: %s", exc)
+        return {"available": False, "reason": f"store_unavailable: {exc}",
+                "locality": locality, "case_type": case_type}
 
     sample = len(rows)
     if sample < MIN_CASES_FOR_STATS:
@@ -321,39 +464,59 @@ def next_reference(case_type: Optional[str], year: Optional[int] = None) -> str:
     """
     from datetime import datetime
 
-    init_db()
     yr = year or datetime.now().year
     code = _TYPE_CODES.get(case_type or "", "VA")
 
     start = datetime(yr, 1, 1).timestamp()
     end = datetime(yr + 1, 1, 1).timestamp()
-    with _lock, _connect() as conn:
-        n = conn.execute(
-            "SELECT COUNT(*) AS n FROM cases WHERE case_type IS ? AND created_at >= ? AND created_at < ?",
-            (case_type, start, end),
-        ).fetchone()["n"]
+    # `IS ?` is SQLite-only null-safe equality; this spelling holds on both
+    # backends and still counts the untyped (NULL case_type) dossiers.
+    where = "case_type IS NULL" if case_type is None else "case_type = ?"
+    params = (start, end) if case_type is None else (case_type, start, end)
+    try:
+        init_db()
+        with _lock, _connect() as conn:
+            n = conn.execute(
+                f"""SELECT COUNT(*) AS n FROM cases
+                    WHERE {where} AND created_at >= ? AND created_at < ?""",
+                params,
+            ).fetchone()["n"]
+    except Exception as exc:
+        # The code is a suggestion the operator edits anyway, and it is produced
+        # in the middle of the analysis path — an unreachable bank must not fail
+        # the dossier being analysed.
+        logger.warning("Case bank unavailable for reference code: %s", exc)
+        n = 0
 
     return f"{code}-{yr}-{n + 1:04d}"
 
 
 def bank_summary() -> Dict[str, Any]:
-    init_db()
-    with _lock, _connect() as conn:
-        total = conn.execute("SELECT COUNT(*) AS n FROM cases").fetchone()["n"]
-        by_type = [
-            {"case_type": r["case_type"], "count": r["n"]}
-            for r in conn.execute(
-                """SELECT case_type, COUNT(*) AS n FROM cases
-                   WHERE case_type IS NOT NULL
-                   GROUP BY case_type ORDER BY n DESC"""
-            ).fetchall()
-        ]
-        by_locality = [
-            {"locality": r["locality"], "count": r["n"]}
-            for r in conn.execute(
-                """SELECT locality, COUNT(*) AS n FROM cases
-                   WHERE locality IS NOT NULL
-                   GROUP BY locality ORDER BY n DESC LIMIT 10"""
-            ).fetchall()
-        ]
+    try:
+        init_db()
+        with _lock, _connect() as conn:
+            total = conn.execute("SELECT COUNT(*) AS n FROM cases").fetchone()["n"]
+            by_type = [
+                {"case_type": r["case_type"], "count": r["n"]}
+                for r in conn.execute(
+                    """SELECT case_type, COUNT(*) AS n FROM cases
+                       WHERE case_type IS NOT NULL
+                       GROUP BY case_type ORDER BY n DESC"""
+                ).fetchall()
+            ]
+            by_locality = [
+                {"locality": r["locality"], "count": r["n"]}
+                for r in conn.execute(
+                    """SELECT locality, COUNT(*) AS n FROM cases
+                       WHERE locality IS NOT NULL
+                       GROUP BY locality ORDER BY n DESC LIMIT 10"""
+                ).fetchall()
+            ]
+    except Exception as exc:
+        # An empty bank and an unreachable one are different states; the error
+        # field distinguishes them so the dashboard does not read "0 cases".
+        logger.warning("Case bank unavailable for summary: %s", exc)
+        return {"total_cases": 0, "by_case_type": [], "by_locality": [],
+                "error": f"store_unavailable: {exc}"}
+
     return {"total_cases": total, "by_case_type": by_type, "by_locality": by_locality}

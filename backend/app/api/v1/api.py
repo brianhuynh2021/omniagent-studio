@@ -38,7 +38,9 @@ def get_project_info():
         "vertical_plugins_count": len(verticals),
         "tools_available_count": len(tools),
         "status": "ONLINE",
-        "llm_provider": settings.LLM_PROVIDER
+        # The resolved provider, not the configured pin: LLM_PROVIDER is
+        # normally empty and the provider comes from whichever key is present.
+        "llm_provider": llm.active_provider() or "retrieval-only",
     }
 
 # Vertical Ecosystem Endpoints (Super-App Architecture)

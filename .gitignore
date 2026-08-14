@@ -10,8 +10,10 @@ node_modules/
 dist/
 .DS_Store
 
-# Legal assistant — never commit case data or secrets
+# Legal assistant — never commit case data or secrets.
+# The patterns are unanchored because LEGAL_CASE_BANK_PATH can put the database
+# anywhere, and the salt is written next to whatever path that resolves to.
 backend/.env
-backend/app/domains/legal_assistant/case_bank.db
-backend/app/domains/legal_assistant/.case_bank_salt
+*.db
+.case_bank_salt
 backend/.venv/

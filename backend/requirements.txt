@@ -12,16 +12,21 @@ python-docx>=1.1.2
 pytesseract>=0.3.13
 Pillow>=11.0.0
 
+# Postgres — the deployed store for the case bank and pgvector retrieval.
+# Absent it, both fall back to their local adapters (SQLite / in-memory).
+psycopg[binary]>=3.2.0
+
 # LLM providers (all optional at runtime — the app falls back to
 # retrieval-only when no API key is configured)
 anthropic>=0.40.0
 google-genai>=1.0.0
 openai>=1.60.0
 
-# Vector DB / local embedding (optional adapters are lazy-loaded at runtime)
-qdrant-client>=1.12.0
-sentence-transformers>=3.3.0
-
-# Cloud OCR adapters (optional; credentials are intentionally not bundled)
-google-cloud-vision>=3.8.0
-boto3>=1.35.0
+# Optional adapters, all lazy-loaded at runtime and deliberately NOT installed
+# by default: each is heavy (sentence-transformers pulls ~2GB of torch) and the
+# defaults — EMBEDDING_PROVIDER=hash, local OCR via tesseract — need none of
+# them. Install into the image only when the deployment actually enables them.
+#   qdrant-client>=1.12.0          # VECTOR_STORE_PROVIDER=qdrant
+#   sentence-transformers>=3.3.0   # EMBEDDING_PROVIDER=local_sentence_transformers
+#   google-cloud-vision>=3.8.0     # cloud OCR fallback
+#   boto3>=1.35.0                  # cloud OCR fallback
