@@ -1076,15 +1076,25 @@ tr:hover td { background: #fbfcfe; }
 
 .legal-loaded__clear:hover { background: var(--surface-inset); color: var(--ink); }
 
-/* Action row: role picker sits beside the run button */
+.legal-top-role-card {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.05));
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: var(--s4);
+  backdrop-filter: blur(12px);
+}
+
+/* Action row: run button sits cleanly at the bottom */
 .legal-actions {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--s4);
   margin-top: var(--s5);
-  flex-wrap: wrap;
 }
+
+
 
 .legal-role { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; }
 

@@ -31,8 +31,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - ./backend:/app
     depends_on:
       - qdrant
+
 
   legal-assistant-frontend:
     build:
@@ -43,8 +46,11 @@ services:
     ports:
       - "80:80"
       - "5173:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html
     depends_on:
       - legal-assistant-backend
+
 
 volumes:
   qdrant_storage:

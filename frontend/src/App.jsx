@@ -17,11 +17,15 @@ export default function App() {
   const [lastAgentResponse, setLastAgentResponse] = useState(null);
 
   useEffect(() => {
-    fetch("http://localhost:8001/api/v1/project/info")
+    const infoUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:8001/api/v1/project/info"
+      : "/api/v1/project/info";
+    fetch(infoUrl)
       .then(res => res.json())
       .then(data => setSystemInfo(data))
       .catch(() => console.log("Backend loading or offline..."));
   }, []);
+
 
   const handleAgentExecute = (response) => {
     setLastAgentResponse(response);

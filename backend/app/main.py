@@ -39,6 +39,28 @@ def health_check():
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Serve static frontend build if static directory exists (Hugging Face / Production All-in-One)
+import os
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if os.path.exists(static_dir):
+    assets_dir = os.path.join(static_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        if full_path.startswith("api") or full_path == "health" or full_path.startswith("docs") or full_path.startswith("redoc"):
+            return None
+        target = os.path.join(static_dir, full_path)
+        if os.path.isfile(target):
+            return FileResponse(target)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)
+    port = int(os.getenv("PORT", 8001))
+    uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
+

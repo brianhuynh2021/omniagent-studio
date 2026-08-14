@@ -1,7 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloud, ChevronDown, ArrowRight, FileText, X, Loader2, AlertTriangle } from 'lucide-react';
 
-const API_BASE = "http://localhost:8001/api/v1/legal";
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8001/api/v1/legal"
+  : "/api/v1/legal";
+
 
 const PERSONA_KEYS = ['all_in_one', 'lawyer', 'judge', 'prosecutor', 'corporate'];
 
@@ -78,6 +81,25 @@ export default function IntakeScreen({
       <div className="legal-intake__lede">
         <h1 className="legal-intake__title">{t.intakeTitle}</h1>
         <p className="legal-intake__sub">{t.intakeSub}</p>
+      </div>
+
+      <div className="legal-top-role-card">
+        <div className="legal-role">
+          <label className="legal-label" htmlFor="legal-role-select">⚖️ {t.roleLabel}</label>
+          <div className="legal-select">
+            <select
+              id="legal-role-select"
+              value={persona}
+              onChange={(e) => setPersona(e.target.value)}
+            >
+              {PERSONA_KEYS.map(k => (
+                <option key={k} value={k}>{t.personas[k].name}</option>
+              ))}
+            </select>
+            <ChevronDown size={15} />
+          </div>
+          <p className="legal-role__desc">{t.personas[persona].desc}</p>
+        </div>
       </div>
 
       <div
@@ -159,23 +181,6 @@ export default function IntakeScreen({
       )}
 
       <div className="legal-actions">
-        <div className="legal-role">
-          <label className="legal-label" htmlFor="legal-role-select">{t.roleLabel}</label>
-          <div className="legal-select">
-            <select
-              id="legal-role-select"
-              value={persona}
-              onChange={(e) => setPersona(e.target.value)}
-            >
-              {PERSONA_KEYS.map(k => (
-                <option key={k} value={k}>{t.personas[k].name}</option>
-              ))}
-            </select>
-            <ChevronDown size={15} />
-          </div>
-          <p className="legal-role__desc">{t.personas[persona].desc}</p>
-        </div>
-
         <button
           className="legal-run"
           onClick={onProcess}

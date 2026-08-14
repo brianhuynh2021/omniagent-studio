@@ -1,11 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Scale, Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { legalTranslations } from './bilingual_dict';
 import IntakeScreen from './IntakeScreen';
 import ResultsScreen from './ResultsScreen';
 import DraftScreen from './DraftScreen';
 
-const API_BASE = "http://localhost:8001/api/v1/legal";
+
+
+
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8001/api/v1/legal"
+  : "/api/v1/legal";
+
 
 const FALLBACK_TITLE = "Vụ án Trộm cắp tài sản & Lừa đảo chiếm đoạt tài sản - Nguyễn Văn A";
 const FALLBACK_CONTENT = `HỒ SƠ VỤ ÁN HÌNH SỰ: NGUYỄN VĂN A
@@ -231,3 +237,4 @@ export default function LegalAssistantView({ onAgentExecute, lang: externalLang,
     </div>
   );
 }
+

@@ -14,6 +14,10 @@ from app.agents.core.self_improvement import self_improvement_engine
 from app.agents.core.trajectories import trajectory_recorder, AgentTrajectory, TrajectoryStep
 from app.agents.core.weakness_inspector import weakness_inspector
 from app.agents.core.agent_flywheel import agent_flywheel_engine
+from app.domains.legal_assistant.stanford_agent_2026 import stanford_legal_engine
+from app.domains.legal_assistant.mit_enterprise_2026 import mit_enterprise_engine
+
+
 
 class LegalAssistantService:
     """Dedicated Service for Legal Assistant AI OS (Bilingual VI/EN & Multi-Persona)."""
@@ -255,6 +259,30 @@ Căn cứ pháp lý áp dụng: Điều 175 Bộ luật Hình sự 2015 (Tội l
         structured_data["reference_code"] = case_bank.next_reference(
             bank_result.get("case_type")
         )
+
+        # Stanford 2026 13-Step Improving Agent Loop
+        stanford_result = stanford_legal_engine.run_13_step_loop(
+            user_goal=f"Process legal dossier for persona '{persona}'",
+            case_title=title,
+            case_content=content,
+            persona=persona,
+            retrieved_docs=[{"title": c.document_name, "content": c.snippet} for c in citations],
+            generated_output=structured_data
+        )
+        structured_data["stanford_reflection"] = stanford_result.dict()
+
+        # MIT 2026 13-Step Enterprise Workflow Engine
+        total_latency = (time.time() - start_time) * 1000
+        mit_result = mit_enterprise_engine.execute_13_step_enterprise_workflow(
+            case_title=title,
+            case_content=content,
+            persona=persona,
+            execution_latency_ms=total_latency,
+            evidence_count=len(structured_data.get("evidence_matrix", [])),
+            matched_precedents_count=len(matched_precedents),
+            citation_score=stanford_result.citation_grounding_score
+        )
+        structured_data["mit_enterprise_workflow"] = mit_result.dict()
 
         return AgentResponse(
             agent_name="LegalAssistantAI_OS",

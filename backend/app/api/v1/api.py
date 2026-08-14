@@ -2,9 +2,11 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from typing import Dict, Any, Optional, List
 
+import os
 from app.core.config import settings
 from app.domains.legal_assistant.service import legal_assistant_service
 from app.domains.legal_assistant import case_bank, extraction, llm
+from app.domains.legal_assistant.stanford_agent_2026 import stanford_legal_engine
 from app.services.doc_intel_service import doc_intel_service
 from app.services.marketing_service import marketing_service
 from app.services.booking_service import booking_service
@@ -233,7 +235,63 @@ def legal_engine_status():
     info["cloud_ocr"] = configured_chain(allow_external_ocr=True).status()
     return info
 
+class LegalFeedbackRequest(BaseModel):
+    case_id: str = "case_01"
+    rating: int = 5
+    attorney_correction: Optional[str] = ""
+
+@api_router.post("/legal/self-improve/feedback")
+def submit_legal_feedback(req: LegalFeedbackRequest):
+    """Submits human attorney feedback to update Stanford 2026 Episodic Memory."""
+    return stanford_legal_engine.record_human_feedback(
+        case_id=req.case_id,
+        rating=req.rating,
+        attorney_correction=req.attorney_correction or ""
+    )
+
+@api_router.get("/legal/docs")
+def get_legal_product_docs():
+    """Returns Product README & Legal Compliance documentation."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    docs_dir = os.path.join(base_dir, "domains", "legal_assistant", "docs")
+    readme_path = os.path.join(docs_dir, "README.md")
+    compliance_path = os.path.join(docs_dir, "LEGAL_COMPLIANCE_2026.md")
+    
+    readme_content = open(readme_path, "r", encoding="utf-8").read() if os.path.exists(readme_path) else ""
+    compliance_content = open(compliance_path, "r", encoding="utf-8").read() if os.path.exists(compliance_path) else ""
+    
+    return {
+        "readme": readme_content,
+        "compliance": compliance_content
+    }
+
+@api_router.get("/legal/roadmap")
+def get_legal_product_roadmap():
+    """Returns 2026 Legal Assistant Product Roadmap."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    roadmap_path = os.path.join(base_dir, "domains", "legal_assistant", "roadmap", "ROADMAP_2026.md")
+    content = open(roadmap_path, "r", encoding="utf-8").read() if os.path.exists(roadmap_path) else ""
+    return {"roadmap": content}
+
+@api_router.get("/legal/prototype-spec")
+def get_legal_prototype_spec():
+    """Returns Design System & Prototype Specifications."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    spec_path = os.path.join(base_dir, "domains", "legal_assistant", "design_prototype", "PROTOTYPE_SPEC.md")
+    content = open(spec_path, "r", encoding="utf-8").read() if os.path.exists(spec_path) else ""
+    return {"spec": content}
+
+@api_router.get("/legal/mit-framework")
+def get_legal_mit_framework():
+    """Returns MIT 2026 Enterprise Execution Framework specification."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    framework_path = os.path.join(base_dir, "domains", "legal_assistant", "docs", "MIT_ENTERPRISE_FRAMEWORK_2026.md")
+    content = open(framework_path, "r", encoding="utf-8").read() if os.path.exists(framework_path) else ""
+    return {"framework": content}
+
 @api_router.get("/rag/status")
+
+
 def rag_status():
     """Report the active vector/embedding backend and whether Qdrant is live."""
     return rag_engine.status()
