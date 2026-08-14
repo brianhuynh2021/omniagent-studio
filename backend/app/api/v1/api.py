@@ -18,8 +18,11 @@ from app.agents.core.tool_registry import global_tool_registry
 from app.services.custom_agent_service import custom_agent_service, CreateCustomAgentRequest
 from app.rag.engine import rag_engine
 from app.domains.legal_assistant.cloud_ocr import configured_chain
+from app.api.v1.auth import auth_router
+from app.api.deps import get_optional_current_user
 
 api_router = APIRouter()
+api_router.include_router(auth_router, prefix="/auth", tags=["Auth"])
 
 # Core System Info
 @api_router.get("/project/info")

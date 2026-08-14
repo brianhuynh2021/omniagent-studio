@@ -8,24 +8,30 @@ import AgentStudio from './components/AgentStudio';
 import PlatformHubPortal from './components/PlatformHubPortal';
 import AgentTraceLogs from './components/AgentTraceLogs';
 import AppHeader from './components/AppHeader';
+import AuthModal from './components/AuthModal';
+import { AuthProvider } from './context/AuthContext';
+import { apiUrl } from './api';
 
-export default function App() {
+function AppContent() {
   const [activeView, setActiveView] = useState('hub');
   const [lang, setLang] = useState('vi');
   const [systemInfo, setSystemInfo] = useState(null);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [lastAgentResponse, setLastAgentResponse] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
-    const infoUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:8001/api/v1/project/info"
-      : "/api/v1/project/info";
-    fetch(infoUrl)
+    const handleOpenAuth = () => setIsAuthModalOpen(true);
+    window.addEventListener('open-auth-modal', handleOpenAuth);
+    return () => window.removeEventListener('open-auth-modal', handleOpenAuth);
+  }, []);
+
+  useEffect(() => {
+    fetch(apiUrl("/api/v1/project/info"))
       .then(res => res.json())
       .then(data => setSystemInfo(data))
       .catch(() => console.log("Backend loading or offline..."));
   }, []);
-
 
   const handleAgentExecute = (response) => {
     setLastAgentResponse(response);
@@ -96,6 +102,19 @@ export default function App() {
         onClose={() => setIsTraceOpen(false)}
         lastResponse={lastAgentResponse}
       />
+
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

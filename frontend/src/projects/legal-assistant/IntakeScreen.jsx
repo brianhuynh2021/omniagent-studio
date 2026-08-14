@@ -1,9 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloud, ChevronDown, ArrowRight, FileText, X, Loader2, AlertTriangle } from 'lucide-react';
+import { apiBase } from '../../api';
 
-const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:8001/api/v1/legal"
-  : "/api/v1/legal";
+const API_BASE = apiBase("/api/v1/legal");
 
 
 const PERSONA_KEYS = ['all_in_one', 'lawyer', 'judge', 'prosecutor', 'corporate'];
@@ -81,9 +80,10 @@ export default function IntakeScreen({
       <div className="legal-intake__lede">
         <h1 className="legal-intake__title">{t.intakeTitle}</h1>
         <p className="legal-intake__sub">{t.intakeSub}</p>
-      </div>
 
-      <div className="legal-top-role-card">
+        {/* The role reframes the whole analysis rather than being one more
+            input, so it reads as part of the lede instead of a separate card
+            competing with the dossier drop zone below. */}
         <div className="legal-role">
           <label className="legal-label" htmlFor="legal-role-select">⚖️ {t.roleLabel}</label>
           <div className="legal-select">

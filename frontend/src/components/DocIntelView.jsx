@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Search, BookOpen, CheckSquare, Sparkles, FileCode } from 'lucide-react';
+import { apiUrl } from '../api';
 
 export default function DocIntelView({ onAgentExecute }) {
   const [query, setQuery] = useState("Quy định bảo mật dữ liệu công ty và thủ tục xin nghỉ phép?");
@@ -9,7 +10,7 @@ export default function DocIntelView({ onAgentExecute }) {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8001/api/v1/doc_intel/qa", {
+      const res = await fetch(apiUrl("/api/v1/doc_intel/qa"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query })

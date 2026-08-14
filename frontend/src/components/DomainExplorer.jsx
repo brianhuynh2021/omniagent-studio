@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../api';
 
 export default function DomainExplorer({ onSelectDomain, activeDomainKey, onAgentExecute }) {
   const [domains, setDomains] = useState([]);
@@ -10,7 +11,7 @@ export default function DomainExplorer({ onSelectDomain, activeDomainKey, onAgen
   const [executing, setExecuting] = useState(false);
 
   useEffect(() => {
-    fetch("http://localhost:8001/api/v1/domains/list")
+    fetch(apiUrl("/api/v1/domains/list"))
       .then(res => res.json())
       .then(data => {
         setDomains(data);
@@ -18,7 +19,7 @@ export default function DomainExplorer({ onSelectDomain, activeDomainKey, onAgen
       })
       .catch(() => setLoading(false));
 
-    fetch("http://localhost:8001/api/v1/agents/list")
+    fetch(apiUrl("/api/v1/agents/list"))
       .then(res => res.json())
       .then(data => setAgents(data))
       .catch(err => console.log("Agents list err", err));
@@ -41,7 +42,7 @@ export default function DomainExplorer({ onSelectDomain, activeDomainKey, onAgen
     if (!selectedAgent || !testInput.trim()) return;
     setExecuting(true);
 
-    fetch("http://localhost:8001/api/v1/agents/execute", {
+    fetch(apiUrl("/api/v1/agents/execute"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

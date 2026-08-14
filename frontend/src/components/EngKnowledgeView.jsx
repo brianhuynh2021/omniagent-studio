@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Code, Server, CheckCircle2, FileCheck, Sparkles, Layers } from 'lucide-react';
+import { apiUrl } from '../api';
 
 export default function EngKnowledgeView({ onAgentExecute }) {
   const [sysName, setSysName] = useState("AI Core Platform Enterprise Engine");
@@ -10,7 +11,7 @@ export default function EngKnowledgeView({ onAgentExecute }) {
   const handleAnalyze = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8001/api/v1/eng/analyze", {
+      const res = await fetch(apiUrl("/api/v1/eng/analyze"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sys_name: sysName, tech_spec_text: techSpec })

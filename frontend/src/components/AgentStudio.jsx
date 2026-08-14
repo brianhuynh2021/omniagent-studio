@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '../api';
 
 export default function AgentStudio({ onAgentCreated, onAgentExecute }) {
   const [name, setName] = useState('');
@@ -20,7 +21,7 @@ export default function AgentStudio({ onAgentCreated, onAgentExecute }) {
   }, []);
 
   const fetchCustomAgents = () => {
-    fetch("http://localhost:8001/api/v1/agents/custom/list")
+    fetch(apiUrl("/api/v1/agents/custom/list"))
       .then(res => res.json())
       .then(data => setCreatedAgents(data))
       .catch(err => console.log("Fetch custom agents error", err));
@@ -55,7 +56,7 @@ export default function AgentStudio({ onAgentCreated, onAgentExecute }) {
     setSaving(true);
     setStatusMsg('');
 
-    fetch("http://localhost:8001/api/v1/agents/custom/create", {
+    fetch(apiUrl("/api/v1/agents/custom/create"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Megaphone, Calendar, Users, Sparkles, Share2, MessageCircle, Video } from 'lucide-react';
+import { apiUrl } from '../api';
 
 export default function MarketingAgentView({ onAgentExecute }) {
   const [bizName, setBizName] = useState("Aroma Cafe & Bistro");
@@ -11,7 +12,7 @@ export default function MarketingAgentView({ onAgentExecute }) {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8001/api/v1/marketing/campaign", {
+      const res = await fetch(apiUrl("/api/v1/marketing/campaign"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ biz_name: bizName, biz_type: bizType, promotion_goal: promotionGoal })

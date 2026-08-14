@@ -5,6 +5,7 @@ pydantic-settings>=2.1.0
 python-multipart>=0.0.9
 requests>=2.31.0
 python-dotenv>=1.0.0
+pyjwt>=2.8.0
 
 # Document extraction / OCR
 pypdf>=5.1.0

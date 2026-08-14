@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Scale, FileText, Megaphone, Headset, Code2, Sparkles, Layers, Activity, ChevronDown, Home } from 'lucide-react';
+import { Scale, FileText, Megaphone, Headset, Code2, Sparkles, Layers, Activity, ChevronDown, Home, UserCheck, LogOut, LogIn, ShieldCheck } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const WORKSPACES = [
   { id: 'hub', label: 'Trang Chủ Hub Portal', icon: Home, desc: 'Cổng tổng hợp xem tất cả dự án' },
@@ -118,7 +119,68 @@ export default function AppHeader({
             <span className="app-header__trace-badge">{traceLogsCount}</span>
           </button>
         )}
+
+        {/* User Auth Section */}
+        {useAuthContext()}
       </div>
     </header>
+  );
+}
+
+function useAuthContext() {
+  const { user, isAuthenticated, logout } = useAuth();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  if (isAuthenticated && user) {
+    const roleColors = {
+      admin: '#ef4444',
+      attorney: '#8b5cf6',
+      analyst: '#06b6d4',
+      user: '#3b82f6'
+    };
+
+    return (
+      <div className="app-header__user-wrapper">
+        <button 
+          className="app-header__user-btn"
+          onClick={() => setUserMenuOpen(!userMenuOpen)}
+        >
+          <div className="app-header__user-avatar">
+            {user.username.charAt(0).toUpperCase()}
+          </div>
+          <span className="app-header__user-name">{user.username}</span>
+          <span 
+            className="app-header__role-badge"
+            style={{ backgroundColor: `${roleColors[user.role] || '#3b82f6'}22`, color: roleColors[user.role] || '#3b82f6' }}
+          >
+            {user.role?.toUpperCase()}
+          </span>
+          <ChevronDown size={12} />
+        </button>
+
+        {userMenuOpen && (
+          <div className="app-header__user-dropdown" onClick={() => setUserMenuOpen(false)}>
+            <div className="app-header__dropdown-header">
+              <div className="app-header__dropdown-name">{user.username}</div>
+              <div className="app-header__dropdown-email">{user.email}</div>
+            </div>
+            <button className="app-header__dropdown-item is-logout" onClick={logout}>
+              <LogOut size={14} />
+              <span>Đăng Xuất</span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      className="app-header__login-btn"
+      onClick={() => window.dispatchEvent(new CustomEvent('open-auth-modal'))}
+    >
+      <LogIn size={14} />
+      <span>Đăng Nhập</span>
+    </button>
   );
 }

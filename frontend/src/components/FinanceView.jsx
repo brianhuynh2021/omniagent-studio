@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiUrl } from '../api';
 
 export default function FinanceView({ onAgentExecute }) {
   const [financialData, setFinancialData] = useState(
@@ -9,7 +10,7 @@ export default function FinanceView({ onAgentExecute }) {
 
   const handleAnalyze = () => {
     setLoading(true);
-    fetch("http://localhost:8001/api/v1/agents/execute", {
+    fetch(apiUrl("/api/v1/agents/execute"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

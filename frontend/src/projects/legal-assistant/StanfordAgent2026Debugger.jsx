@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { 
+import { apiBase } from '../../api';
   Brain, CheckCircle2, AlertTriangle, RefreshCw, Database, 
   Sparkles, Award, ShieldCheck, ArrowRight, Send, Check, Layers
 } from 'lucide-react';
 
-const API_BASE = "http://localhost:8001/api/v1/legal";
+const API_BASE = apiBase("/api/v1/legal");
 
 export default function StanfordAgent2026Debugger({ reflectionData, caseId = "case_01" }) {
   const [selectedStep, setSelectedStep] = useState(null);

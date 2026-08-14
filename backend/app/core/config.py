@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # not survive a container restart — set this in any real deployment.
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
+    # JWT Authentication & AuthZ Settings
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "omniagent-studio-secret-key-2026-secure-jwt-auth")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 # 24 Hours
+
     # Vector DB & Storage
     QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
     QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", "6333"))

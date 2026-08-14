@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MessageSquare, CalendarCheck, UserCheck, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { apiUrl } from '../api';
 
 export default function SupportBookingView({ onAgentExecute }) {
   const [message, setMessage] = useState("Tôi muốn đặt lịch làm dịch vụ bảo dưỡng xe vào ngày mai lúc 15h");
@@ -10,7 +11,7 @@ export default function SupportBookingView({ onAgentExecute }) {
   const handleSendMessage = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8001/api/v1/booking/message", {
+      const res = await fetch(apiUrl("/api/v1/booking/message"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, customer_phone: phone })

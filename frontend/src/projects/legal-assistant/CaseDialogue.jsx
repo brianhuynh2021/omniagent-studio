@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Send, Loader2, MessageSquare, AlertTriangle, ShieldCheck, Lock, Globe } from 'lucide-react';
+import { apiBase } from '../../api';
 
-const API_BASE = "http://localhost:8001/api/v1/legal";
+const API_BASE = apiBase("/api/v1/legal");
 
 export default function CaseDialogue({ t, title, content, persona, lang }) {
   const [turns, setTurns] = useState([]);

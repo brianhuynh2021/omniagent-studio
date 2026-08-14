@@ -4,13 +4,12 @@ import { legalTranslations } from './bilingual_dict';
 import IntakeScreen from './IntakeScreen';
 import ResultsScreen from './ResultsScreen';
 import DraftScreen from './DraftScreen';
+import { apiBase } from '../../api';
 
 
 
 
-const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-  ? "http://localhost:8001/api/v1/legal"
-  : "/api/v1/legal";
+const API_BASE = apiBase("/api/v1/legal");
 
 
 const FALLBACK_TITLE = "Vụ án Trộm cắp tài sản & Lừa đảo chiếm đoạt tài sản - Nguyễn Văn A";

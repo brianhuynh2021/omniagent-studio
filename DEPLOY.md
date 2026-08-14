@@ -69,6 +69,8 @@ found and the assistant is running retrieval-only.
 | `ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` | *(empty)* | Any one enables the LLM path. |
 | `LLM_PROVIDER` | *(empty)* | Pins a provider: `claude`, `gemini`, or `openai`. Leave empty to auto-detect. |
 | `CLAUDE_MODEL` / `GEMINI_MODEL` / `OPENAI_MODEL` | see `llm.py` | Per-provider model override. |
+| `JWT_SECRET_KEY` | default fallback | Secret key for signing JWT tokens. Set a random 32-byte string in staging/prod. |
+| `DEFAULT_ADMIN_PASSWORD` | generated random | Password for the initial seeded `admin` account. Set explicitly for staging/prod. |
 | `LEGAL_CASE_BANK_SALT` | generated | Dedupe-hash salt. Set explicitly when `DATABASE_URL` is set, see below. |
 | `VECTOR_STORE_PROVIDER` | `memory` | `qdrant` requires installing `qdrant-client`. |
 | `EMBEDDING_PROVIDER` | `hash` | `local_sentence_transformers` requires installing that package. |

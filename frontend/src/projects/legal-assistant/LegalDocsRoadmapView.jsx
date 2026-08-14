@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, Map, Layout, ShieldCheck, FileText, Layers, Building2 } from 'lucide-react';
+import { apiBase } from '../../api';
 
-const API_BASE = "http://localhost:8001/api/v1/legal";
+const API_BASE = apiBase("/api/v1/legal");
 
 export default function LegalDocsRoadmapView() {
   const [activeTab, setActiveTab] = useState('docs'); // 'docs' | 'mit' | 'roadmap' | 'prototype'
