@@ -14,7 +14,7 @@ DB_PATH = os.environ.get(
 )
 
 def _db_url() -> str:
-    return (os.environ.get("DATABASE_URL") or "").strip()
+    return (os.environ.get("DATABASE_URL") or settings.DATABASE_URL or "").strip()
 
 def using_postgres() -> bool:
     return bool(_db_url())
