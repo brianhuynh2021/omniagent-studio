@@ -51,6 +51,13 @@ OmniAgent Studio is an enterprise AI platform core designed following **MIT-grad
 
 ---
 
+## 🌐 Vertical Projects Ecosystem & Roadmap
+
+For a comprehensive breakdown of all active sub-projects, ready-to-deploy verticals (HR & Talent, Procurement & Invoice Matching, E-Commerce, Real Estate, Compliance), and technical reusability matrix, see:
+👉 **[PROJECTS_ECOSYSTEM.md](PROJECTS_ECOSYSTEM.md)**
+
+---
+
 ## 🚀 Quickstart Guide
 
 ### 1. Run Backend Server
